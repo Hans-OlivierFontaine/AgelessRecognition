@@ -11,6 +11,18 @@ import random
 from PIL import Image
 
 
+class CustomRGBAugmentation(object):
+    def __call__(self, img):
+        # Check if the image has three channels
+        if img.shape[0] == 3:
+            return img
+        # If the image has only one channel, repeat the channel thrice
+        elif img.shape[0] == 1:
+            return torch.cat([img, img, img], dim=0)
+        else:
+            raise ValueError("Input image must have either 1 or 3 channels")
+
+
 class TripletImageDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = Path(root_dir)
@@ -35,7 +47,8 @@ class TripletImageDataset(Dataset):
             positive_path = random.choice(self.class_to_images[self.images_to_class[anchor_path]])
             if positive_path != anchor_path:
                 break
-        negative_classes = {key: value for key, value in self.class_to_images.items() if key != self.images_to_class[anchor_path]}
+        negative_classes = {key: value for key, value in self.class_to_images.items() if
+                            key != self.images_to_class[anchor_path]}
         negative_path = random.choice(self.class_to_images[random.choice(list(negative_classes.keys()))])
         anchor_img = Image.open(anchor_path)
         positive_img = Image.open(positive_path)
@@ -82,6 +95,7 @@ if __name__ == "__main__":
     num_epochs = 10
 
     transform = transforms.Compose([
+        CustomRGBAugmentation(),
         transforms.AugMix(),
         transforms.Resize((256, 256)),
         transforms.ToTensor(),
@@ -98,7 +112,6 @@ if __name__ == "__main__":
         epoch_loss = []
         tq = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}", postfix={"loss": 0})
         for anchor, positive, negative in tq:
-
             optimizer.zero_grad()
 
             anchor_encoding = encoder(anchor)
