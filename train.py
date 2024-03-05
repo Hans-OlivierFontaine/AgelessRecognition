@@ -1,3 +1,6 @@
+from tqdm import tqdm
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -92,7 +95,9 @@ if __name__ == "__main__":
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
 
     for epoch in range(num_epochs):
-        for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
+        epoch_loss = []
+        tq = tqdm(dataloader, desc=f"Epoch {epoch + 1}/{num_epochs}", postfix={"loss": 0})
+        for anchor, positive, negative in tq:
 
             optimizer.zero_grad()
 
@@ -106,7 +111,8 @@ if __name__ == "__main__":
 
             optimizer.step()
 
-            if batch_idx % 10 == 0:
-                print(f"Epoch {epoch + 1}/{num_epochs}, Batch {batch_idx}/{len(dataloader)}, Loss: {loss.item()}")
+            epoch_loss.append(loss.item())
+
+            tq.set_postfix({"loss": f"{round(np.average(epoch_loss), 4)}±{round(np.std(epoch_loss), 4)}"})
 
     print("Training complete.")
