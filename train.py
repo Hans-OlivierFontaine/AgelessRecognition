@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from pathlib import Path
@@ -44,14 +45,43 @@ class TripletImageDataset(Dataset):
         return anchor_img, positive_img, negative_img
 
 
+class Encoder(nn.Module):
+    def __init__(self):
+        super(Encoder, self).__init__()
+
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=2, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1)
+
+        # Batch normalization layers
+        self.batchnorm1 = nn.BatchNorm2d(16)
+        self.batchnorm2 = nn.BatchNorm2d(32)
+        self.batchnorm3 = nn.BatchNorm2d(64)
+        self.batchnorm4 = nn.BatchNorm2d(128)
+
+        # Activation function
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.relu(self.batchnorm1(self.conv1(x)))
+        x = self.relu(self.batchnorm2(self.conv2(x)))
+        x = self.relu(self.batchnorm3(self.conv3(x)))
+        x = self.relu(self.batchnorm4(self.conv4(x)))
+        return x
+
+
 if __name__ == "__main__":
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
         transforms.ToTensor(),
     ])
 
     dataset = TripletImageDataset(root_dir="./data/images", transform=transform)
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
+
+    encoder = Encoder()
 
     for anchor, positive, negative in dataloader:
         pass
