@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from pathlib import Path
@@ -73,15 +74,38 @@ class Encoder(nn.Module):
 
 
 if __name__ == "__main__":
+    batch_size = 32
+    learning_rate = 0.001
+    num_epochs = 10
+
     transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
     ])
-
     dataset = TripletImageDataset(root_dir="./data/images", transform=transform)
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     encoder = Encoder()
+    triplet_loss = nn.TripletMarginLoss(margin=1.0)
 
-    for anchor, positive, negative in dataloader:
-        pass
+    optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
+
+    for epoch in range(num_epochs):
+        for batch_idx, (anchor, positive, negative) in enumerate(dataloader):
+
+            optimizer.zero_grad()
+
+            anchor_encoding = encoder(anchor)
+            positive_encoding = encoder(positive)
+            negative_encoding = encoder(negative)
+
+            loss = triplet_loss(anchor_encoding, positive_encoding, negative_encoding)
+
+            loss.backward()
+
+            optimizer.step()
+
+            if batch_idx % 10 == 0:
+                print(f"Epoch {epoch + 1}/{num_epochs}, Batch {batch_idx}/{len(dataloader)}, Loss: {loss.item()}")
+
+    print("Training complete.")
