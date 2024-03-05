@@ -11,18 +11,6 @@ import random
 from PIL import Image
 
 
-class CustomRGBAugmentation(object):
-    def __call__(self, img):
-        # Check if the image has three channels
-        if img.shape[0] == 3:
-            return img
-        # If the image has only one channel, repeat the channel thrice
-        elif img.shape[0] == 1:
-            return torch.cat([img, img, img], dim=0)
-        else:
-            raise ValueError("Input image must have either 1 or 3 channels")
-
-
 class TripletImageDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = Path(root_dir)
@@ -50,9 +38,9 @@ class TripletImageDataset(Dataset):
         negative_classes = {key: value for key, value in self.class_to_images.items() if
                             key != self.images_to_class[anchor_path]}
         negative_path = random.choice(self.class_to_images[random.choice(list(negative_classes.keys()))])
-        anchor_img = Image.open(anchor_path)
-        positive_img = Image.open(positive_path)
-        negative_img = Image.open(negative_path)
+        anchor_img = Image.open(anchor_path).convert("RGB")
+        positive_img = Image.open(positive_path).convert("RGB")
+        negative_img = Image.open(negative_path).convert("RGB")
 
         if self.transform:
             anchor_img = self.transform(anchor_img)
@@ -95,8 +83,10 @@ if __name__ == "__main__":
     num_epochs = 10
 
     transform = transforms.Compose([
-        CustomRGBAugmentation(),
-        transforms.AugMix(),
+        transforms.RandomRotation(90),
+        transforms.RandomHorizontalFlip(),
+        transforms.GaussianBlur(5),
+        transforms.RandomErasing(),
         transforms.Resize((256, 256)),
         transforms.ToTensor(),
     ])
