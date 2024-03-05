@@ -79,6 +79,7 @@ if __name__ == "__main__":
     num_epochs = 10
 
     transform = transforms.Compose([
+        transforms.AugMix(),
         transforms.Resize((256, 256)),
         transforms.ToTensor(),
     ])
