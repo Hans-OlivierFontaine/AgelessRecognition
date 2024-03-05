@@ -79,7 +79,7 @@ if __name__ == "__main__":
     num_epochs = 10
 
     transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((256, 256)),
         transforms.ToTensor(),
     ])
     dataset = TripletImageDataset(root_dir="./data/images", transform=transform)
