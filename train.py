@@ -80,13 +80,12 @@ class Encoder(nn.Module):
 if __name__ == "__main__":
     batch_size = 32
     learning_rate = 0.001
-    num_epochs = 10
+    num_epochs = 100
 
     transform = transforms.Compose([
         transforms.RandomRotation(90),
         transforms.RandomHorizontalFlip(),
         transforms.GaussianBlur(5),
-        transforms.RandomErasing(),
         transforms.Resize((256, 256)),
         transforms.ToTensor(),
     ])
