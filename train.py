@@ -11,6 +11,10 @@ import random
 from PIL import Image
 
 
+CUDA = torch.cuda.is_available()
+DEVICE = torch.device("cuda" if CUDA else "cpu")
+
+
 class TripletImageDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = Path(root_dir)
@@ -47,7 +51,10 @@ class TripletImageDataset(Dataset):
             positive_img = self.transform(positive_img)
             negative_img = self.transform(negative_img)
 
-        return anchor_img, positive_img, negative_img
+        if CUDA:
+            return anchor_img.cuda(), positive_img.cuda(), negative_img.cuda()
+        else:
+            return anchor_img, positive_img, negative_img
 
 
 class Encoder(nn.Module):
@@ -92,7 +99,7 @@ if __name__ == "__main__":
     dataset = TripletImageDataset(root_dir="./data/images", transform=transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    encoder = Encoder()
+    encoder = Encoder().to(DEVICE)
     triplet_loss = nn.TripletMarginLoss(margin=1.0)
 
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
