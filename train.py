@@ -10,6 +10,8 @@ from pathlib import Path
 import random
 from PIL import Image
 
+from experiment_logger import ExperimentLogger
+
 
 CUDA = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if CUDA else "cpu")
@@ -92,9 +94,12 @@ class Encoder(nn.Module):
 
 
 if __name__ == "__main__":
+    logger = ExperimentLogger()
+    logger.create_experiment()
+
     batch_size = 32
     learning_rate = 0.001
-    num_epochs = 100
+    num_epochs = 2
 
     transform = transforms.Compose([
         transforms.RandomRotation(90),
@@ -132,3 +137,4 @@ if __name__ == "__main__":
             tq.set_postfix({"loss": f"{round(np.average(epoch_loss), 4)}±{round(np.std(epoch_loss), 4)}"})
 
     print("Training complete.")
+    logger.close_experiment()
