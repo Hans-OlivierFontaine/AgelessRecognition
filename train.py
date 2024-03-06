@@ -39,6 +39,10 @@ class TripletImageDataset(Dataset):
     def __len__(self):
         return len(self.image_paths)
 
+    def yield_repr_ds(self):
+        for img_path, cls in self.repr_ds:
+            yield self.transform(Image.open(img_path).convert("RGB")).to(DEVICE), cls
+
     def __getitem__(self, idx):
         anchor_path = self.image_paths[idx]
         while True:
@@ -57,10 +61,7 @@ class TripletImageDataset(Dataset):
             positive_img = self.transform(positive_img)
             negative_img = self.transform(negative_img)
 
-        if CUDA:
-            return anchor_img.cuda(), positive_img.cuda(), negative_img.cuda()
-        else:
-            return anchor_img, positive_img, negative_img
+        return anchor_img.to(DEVICE), positive_img.to(DEVICE), negative_img.to(DEVICE)
 
 
 class Encoder(nn.Module):
