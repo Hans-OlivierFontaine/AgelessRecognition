@@ -100,11 +100,12 @@ class Encoder(nn.Module):
         return x
 
 
-def tsne_exec(m_tsne, m_embeddings, m_labels, m_epoch):
+def tsne_exec(m_embeddings, m_labels, m_epoch):
+    tsne = TSNE(n_components=2, random_state=42)
     # Reduce dimensionality using t-SNE
     m_embeddings = np.squeeze(m_embeddings, axis=1)
     m_labels = np.squeeze(m_labels, axis=1)
-    embeddings_2d = m_tsne.fit_transform(m_embeddings)
+    embeddings_2d = tsne.fit_transform(m_embeddings)
 
     # Plot 2D embeddings
     plt.figure(figsize=(10, 8))
@@ -123,10 +124,9 @@ if __name__ == "__main__":
 
     batch_size = 32
     learning_rate = 0.001
-    num_epochs = 2
+    num_epochs = 10
     represent = True
     imgsz = 256
-    tsne = TSNE(n_components=2, random_state=42)
 
     transform = transforms.Compose([
         transforms.RandomRotation(90),
@@ -179,7 +179,8 @@ if __name__ == "__main__":
                     labels.append(cls)
             embeddings = np.array(embeddings)
             labels = np.array(labels)
-            tsne_exec(tsne, embeddings, labels, epoch)
+            tsne_exec(embeddings, labels, epoch)
 
     print("Training complete.")
+    logger.create_video_from_images()
     logger.close_experiment()

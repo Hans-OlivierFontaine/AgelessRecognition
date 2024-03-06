@@ -2,6 +2,7 @@ import sys
 import shutil
 from datetime import datetime
 from pathlib import Path
+import imageio
 
 
 class ExperimentLogger:
@@ -29,6 +30,22 @@ class ExperimentLogger:
         shutil.copy(image_path, dest_path)
         print(f"Image saved: {dest_path}")
         Path(image_path).unlink()
+
+    def create_video_from_images(self, duration_per_frame=0.25):
+        # Get all image paths in the directory and sort them by filename
+        image_paths = sorted(self.exp_dir.glob('tsne-repr_*.png'))
+
+        # Read images and append them to a list
+        print("Getting images")
+        images = []
+        for image_path in image_paths:
+            images.append(imageio.imread(image_path))
+
+        # Create video from images
+        print("Creating video: ", (self.exp_dir / 'tsne-repr.mp4').__str__())
+        with imageio.get_writer((self.exp_dir / 'tsne-repr.mp4').__str__(), fps=1 / duration_per_frame) as writer:
+            for image in images:
+                writer.append_data(image)
 
     def close_experiment(self):
         sys.stdout.close()
