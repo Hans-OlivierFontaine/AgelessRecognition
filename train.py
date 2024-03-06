@@ -16,7 +16,7 @@ DEVICE = torch.device("cuda" if CUDA else "cpu")
 
 
 class TripletImageDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, transform=None, n_way_repr: int = 10, k_shot_repr: int = 10):
         self.root_dir = Path(root_dir)
         self.transform = transform
         self.image_paths = list(self.root_dir.glob("*.JPG"))
@@ -29,9 +29,19 @@ class TripletImageDataset(Dataset):
                 self.class_to_images[class_id] = []
             self.class_to_images[class_id].append(img_path)
             self.images_to_class[img_path] = class_id
+        self.repr_cls = random.sample(list(self.class_to_images.keys()), n_way_repr)
+        self.repr_ds = []
+        for cls in self.repr_cls:
+            images = random.sample(self.class_to_images[cls], min(k_shot_repr, len(self.class_to_images[cls])))
+            for img in images:
+                self.repr_ds.append((img, cls))
 
     def __len__(self):
         return len(self.image_paths)
+
+    def yield_repr_ds(self):
+        for img_path, cls in self.repr_ds:
+            yield self.transform(Image.open(img_path).convert("RGB")).to(DEVICE), cls
 
     def __getitem__(self, idx):
         anchor_path = self.image_paths[idx]
@@ -51,10 +61,7 @@ class TripletImageDataset(Dataset):
             positive_img = self.transform(positive_img)
             negative_img = self.transform(negative_img)
 
-        if CUDA:
-            return anchor_img.cuda(), positive_img.cuda(), negative_img.cuda()
-        else:
-            return anchor_img, positive_img, negative_img
+        return anchor_img.to(DEVICE), positive_img.to(DEVICE), negative_img.to(DEVICE)
 
 
 class Encoder(nn.Module):
