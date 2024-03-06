@@ -28,6 +28,7 @@ class ExperimentLogger:
         dest_path = self.exp_dir / image_name
         shutil.copy(image_path, dest_path)
         print(f"Image saved: {dest_path}")
+        Path(image_path).unlink()
 
     def close_experiment(self):
         sys.stdout.close()
