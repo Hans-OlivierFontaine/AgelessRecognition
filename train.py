@@ -19,6 +19,25 @@ CUDA = torch.cuda.is_available()
 DEVICE = torch.device("cuda" if CUDA else "cpu")
 
 
+class FlatDataset(Dataset):
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = Path(root_dir)
+        self.transform = transform
+        self.image_paths = list(self.root_dir.glob("*.JPG"))
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        img = Image.open(img_path).convert("RGB")
+
+        if self.transform:
+            img = self.transform(img)
+
+        return img.to(DEVICE), Path(img_path).name[:4]
+
+
 class TripletImageDataset(Dataset):
     def __init__(self, root_dir, transform=None, no_augment=None, n_way_repr: int = 10, k_shot_repr: int = 10):
         self.root_dir = Path(root_dir)
@@ -89,14 +108,15 @@ class Encoder(nn.Module):
         self.relu = nn.ReLU()
 
         self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.flatten = nn.Flatten()
 
     def forward(self, x):
         x = self.relu(self.batchnorm1(self.conv1(x)))
         x = self.relu(self.batchnorm2(self.conv2(x)))
         x = self.relu(self.batchnorm3(self.conv3(x)))
         x = self.relu(self.batchnorm4(self.conv4(x)))
-        x = self.global_avg_pool(x)
-        x = x.view(x.size(0), -1)
+        x = self.flatten(x)
+        # x = x.view(x.size(0), -1)
         return x
 
 
@@ -118,13 +138,63 @@ def tsne_exec(m_embeddings, m_labels, m_epoch):
     logger.log_image("./tmp.png", f"tsne-repr_{m_epoch}.png")
 
 
+def compute_prototypes(m_embeddings, m_labels):
+    unique_labels = np.unique(m_labels)
+    m_prototypes = {}
+    for label in unique_labels:
+        indices = np.where(m_labels == label)[0]
+        class_embeddings = m_embeddings[indices]
+        m_prototypes[label] = np.mean(class_embeddings, axis=0)
+    return m_prototypes
+
+
+def compute_own_class_prototype_probabilities(m_prototypes, m_embeddings, m_labels):
+    own_class_prototype_probs = []
+    for i in range(len(m_embeddings)):
+        embedding = m_embeddings[i]
+        label = m_labels[i]
+        true_prototype = m_prototypes[str(label[0])]
+        true_dst = np.linalg.norm(embedding - true_prototype)
+        false_dst = np.inf
+        for cls_label in m_prototypes.keys():
+            if cls_label == str(label[0]):
+                continue
+            query_prototype = m_prototypes[cls_label]
+            false_dst = min([np.linalg.norm(embedding - query_prototype), false_dst])
+        own_class_prototype_prob = false_dst / (true_dst + false_dst)
+        own_class_prototype_probs.append(own_class_prototype_prob)
+    return own_class_prototype_probs
+
+
+def print_probability_statistics(own_probs, threshold: float = 0.5):
+    min_prob = min(own_probs)
+    max_prob = max(own_probs)
+    mean_prob = np.mean(own_probs)
+    std_prob = np.std(own_probs)
+
+    print("Minimum probability:", min_prob)
+    print("Maximum probability:", max_prob)
+    print("Mean probability:", mean_prob)
+    print("Standard deviation of probabilities:", std_prob)
+
+    # Additional relevant metrics
+    num_samples = len(own_probs)
+    num_high_prob = sum(prob > threshold for prob in own_probs)
+    num_low_prob = sum(prob < threshold for prob in own_probs)
+    ratio_high_prob = num_high_prob / num_samples
+
+    print(f"Number of samples with probability < {threshold}:", num_low_prob)
+    print(f"Number of samples with probability > {threshold}:", num_high_prob)
+    print(f"Ratio of samples with probability > {threshold}:", ratio_high_prob)
+
+
 if __name__ == "__main__":
     logger = ExperimentLogger()
     logger.create_experiment()
 
     batch_size = 32
     learning_rate = 0.001
-    num_epochs = 10
+    num_epochs = 1
     represent = True
     imgsz = 256
 
@@ -140,7 +210,9 @@ if __name__ == "__main__":
         transforms.ToTensor(),
     ])
     dataset = TripletImageDataset(root_dir="./data/images", transform=transform, no_augment=no_augment)
+    f_dataset = FlatDataset(root_dir="./data/images", transform=transform)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    f_dataloader = DataLoader(f_dataset, batch_size=1, shuffle=False)
 
     encoder = Encoder().to(DEVICE)
     triplet_loss = nn.TripletMarginLoss(margin=1.0)
@@ -183,4 +255,19 @@ if __name__ == "__main__":
 
     print("Training complete.")
     logger.create_video_from_images()
+    with torch.no_grad():
+        encoder.eval()
+        embeddings = []
+        labels = []
+        tq = tqdm(f_dataloader, desc=f"Evaluating comprehension", postfix={"loss": 0})
+        for img, cls in tq:
+            embedding = encoder(img)
+            embeddings.append(embedding.cpu().detach().numpy())
+            labels.append(cls)
+        embeddings = np.array(embeddings)
+        labels = np.array(labels)
+        prototypes = compute_prototypes(embeddings, labels)
+        probs = compute_own_class_prototype_probabilities(prototypes, embeddings, labels)
+        print_probability_statistics(probs, 0.5)
+    print("Evaluation completed")
     logger.close_experiment()
