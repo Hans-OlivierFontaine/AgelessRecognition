@@ -253,6 +253,8 @@ if __name__ == "__main__":
             labels = np.array(labels)
             tsne_exec(embeddings, labels, epoch)
 
+    logger.log_weights(encoder.state_dict(), f"imgsz{imgsz}_epochs{num_epochs}.pth")
+
     print("Training complete.")
     logger.create_video_from_images()
     with torch.no_grad():

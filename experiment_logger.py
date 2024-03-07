@@ -3,6 +3,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 import imageio
+import torch
 
 
 class ExperimentLogger:
@@ -30,6 +31,12 @@ class ExperimentLogger:
         shutil.copy(image_path, dest_path)
         print(f"Image saved: {dest_path}")
         Path(image_path).unlink()
+
+    def log_weights(self, weights, filename):
+        # Copy the image to the experiment directory
+        dest_path = self.exp_dir / filename
+        torch.save(weights, dest_path)
+        print(f"Weights saved: {dest_path}")
 
     def create_video_from_images(self, duration_per_frame=0.25):
         # Get all image paths in the directory and sort them by filename
