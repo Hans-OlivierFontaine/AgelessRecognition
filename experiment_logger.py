@@ -10,6 +10,7 @@ class ExperimentLogger:
     def __init__(self, base_dir="./experiments"):
         self.base_dir = Path(base_dir)
         self.exp_dir = None
+        self.prototypes_dir = None
         self.log_file = None
 
     def create_experiment(self):
@@ -17,6 +18,8 @@ class ExperimentLogger:
         exp_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.exp_dir = self.base_dir / exp_name
         self.exp_dir.mkdir(parents=True, exist_ok=True)
+        self.prototypes_dir = self.exp_dir / "prototypes"
+        self.prototypes_dir.mkdir(parents=True, exist_ok=True)
 
         # Create a log file in the experiment directory
         self.log_file = self.exp_dir / "log.txt"
@@ -37,6 +40,12 @@ class ExperimentLogger:
         dest_path = self.exp_dir / filename
         torch.save(weights, dest_path)
         print(f"Weights saved: {dest_path}")
+
+    def log_embedding(self, embedding, cls_name, n_composition):
+        # Copy the image to the experiment directory
+        dest_path = self.prototypes_dir / f"{cls_name}_{n_composition}.pth"
+        torch.save(embedding, dest_path)
+        print(f"Prototype {cls_name} saved: {dest_path}")
 
     def create_video_from_images(self, duration_per_frame=0.25):
         # Get all image paths in the directory and sort them by filename

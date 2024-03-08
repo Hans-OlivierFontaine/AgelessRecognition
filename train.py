@@ -138,13 +138,14 @@ def tsne_exec(m_embeddings, m_labels, m_epoch):
     logger.log_image("./tmp.png", f"tsne-repr_{m_epoch}.png")
 
 
-def compute_prototypes(m_embeddings, m_labels):
+def compute_prototypes(m_embeddings, m_labels, m_logger):
     unique_labels = np.unique(m_labels)
     m_prototypes = {}
     for label in unique_labels:
         indices = np.where(m_labels == label)[0]
         class_embeddings = m_embeddings[indices]
         m_prototypes[label] = np.mean(class_embeddings, axis=0)
+        m_logger.log_embedding(m_prototypes[label], label, class_embeddings.shape[0])
     return m_prototypes
 
 
@@ -268,7 +269,7 @@ if __name__ == "__main__":
             labels.append(cls)
         embeddings = np.array(embeddings)
         labels = np.array(labels)
-        prototypes = compute_prototypes(embeddings, labels)
+        prototypes = compute_prototypes(embeddings, labels, logger)
         probs = compute_own_class_prototype_probabilities(prototypes, embeddings, labels)
         print_probability_statistics(probs, 0.5)
     print("Evaluation completed")
