@@ -17,5 +17,7 @@ if __name__ == "__main__":
     logger.create_experiment(exp_name)
 
     encoder = Encoder().to(DEVICE)
+    weights = logger.get_weights()
+    encoder.load_state_dict(weights)
 
     logger.close_experiment()

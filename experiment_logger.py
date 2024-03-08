@@ -42,6 +42,18 @@ class ExperimentLogger:
         torch.save(weights, dest_path)
         print(f"Weights saved: {dest_path}")
 
+    def get_weights(self):
+        # Copy the image to the experiment directory
+        files = self.exp_dir.glob(f"*.pth")
+        weights_file = None
+        for file in files:
+            if "imgsz" in file.stem:
+                weights_file = file
+        assert weights_file is not None
+        weights = torch.load(weights_file)
+        print(f"Weights loaded: {weights_file}")
+        return weights
+
     def log_embedding(self, embedding, cls_name, n_composition):
         # Copy the image to the experiment directory
         dest_path = self.prototypes_dir / f"{cls_name}_{n_composition}.pth"
