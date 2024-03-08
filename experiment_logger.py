@@ -60,6 +60,16 @@ class ExperimentLogger:
         torch.save(embedding, dest_path)
         print(f"Prototype {cls_name} saved: {dest_path}")
 
+    def get_prototypes(self):
+        # Load the embeddings from the experiment directory
+        prototypes = {}
+        prototypes_files = self.prototypes_dir.iterdir()
+        for prototype_file in prototypes_files:
+            cls, nbr = prototype_file.name.split("_")
+            prototypes[cls] = [nbr, torch.load(prototype_file)]
+        print(f"Prototypes loaded: {self.prototypes_dir}")
+        return prototypes
+
     def create_video_from_images(self, duration_per_frame=0.25):
         # Get all image paths in the directory and sort them by filename
         image_paths = sorted(self.exp_dir.glob('tsne-repr_*.png'))
