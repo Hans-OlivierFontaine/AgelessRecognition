@@ -1,6 +1,11 @@
 import numpy as np
 
 
+def compute_new_prototype(embedding1, weight1, embedding2, weight2: int = 1):
+    weighted_embedding = (embedding1 * weight1 + embedding2 * weight2) / (weight1 + weight2)
+    return weighted_embedding
+
+
 def compute_prototypes(m_embeddings, m_labels, m_logger):
     unique_labels = np.unique(m_labels)
     m_prototypes = {}

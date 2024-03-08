@@ -71,3 +71,24 @@ class ExperimentLogger:
         sys.stderr = sys.__stderr__
 
         print(f"Experiment completed. Log file saved: {self.log_file}")
+
+
+def find_most_recent_experiment(experiments_dir=Path('./experiments')):
+    # List all directories in the experiments directory
+    experiment_dirs = [entry for entry in experiments_dir.iterdir() if entry.is_dir()]
+
+    # Sort the directories by creation time (modification time)
+    sorted_experiment_dirs = sorted(experiment_dirs, key=lambda d: d.stat().st_mtime, reverse=True)
+
+    # Return the path to the most recent experiment directory
+    assert len(sorted_experiment_dirs) > 0
+    return sorted_experiment_dirs[0]
+
+
+def choose_exp(m_exp_name=None):
+    if m_exp_name is None:
+        m_exp_name = find_most_recent_experiment()
+    else:
+        m_exp_name = Path(f"./experiments/{m_exp_name}")
+    assert Path(f"./experiments/{m_exp_name}").exists()
+    return m_exp_name
