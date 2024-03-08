@@ -13,9 +13,10 @@ class ExperimentLogger:
         self.prototypes_dir = None
         self.log_file = None
 
-    def create_experiment(self):
+    def create_experiment(self, exp_name=None):
         # Create a unique experiment directory based on timestamp
-        exp_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        if exp_name is None:
+            exp_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.exp_dir = self.base_dir / exp_name
         self.exp_dir.mkdir(parents=True, exist_ok=True)
         self.prototypes_dir = self.exp_dir / "prototypes"
